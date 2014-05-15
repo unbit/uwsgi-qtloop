@@ -6,10 +6,12 @@ RequestHandler::RequestHandler(struct wsgi_request *wr) {
 	wsgi_req = wr;
 }
 
+// manage signal handlers
 void RequestHandler::handle_signal(int fd) {
 	uwsgi_receive_signal(fd, (char *) "worker", uwsgi.mywid);
 }
 
+// manage requests
 void RequestHandler::handle_request(int fd) {
 	struct uwsgi_socket *uwsgi_sock = uwsgi.sockets;
         while(uwsgi_sock) {
@@ -75,8 +77,10 @@ extern "C" void qtloop_loop() {
         signal(SIGPIPE, SIG_IGN);
 	QCoreApplication app(uwsgi.argc, uwsgi.argv);
 
+        // create a QObject (you need one for each virtual core)
         RequestHandler *rh = new RequestHandler(&uwsgi.workers[uwsgi.mywid].cores[0].req);
 
+        // monitor signals
 	if (uwsgi.signal_socket > -1) {
 		QSocketNotifier *signal_qsn = new QSocketNotifier(uwsgi.signal_socket, QSocketNotifier::Read, &app);
 		QObject::connect(signal_qsn, SIGNAL(activated(int)), rh, SLOT(handle_signal(int)));
@@ -85,6 +89,7 @@ extern "C" void qtloop_loop() {
 		QObject::connect(my_signal_qsn, SIGNAL(activated(int)), rh, SLOT(handle_signal(int)));
 	}
 
+        // monitor sockets
         struct uwsgi_socket *uwsgi_sock = uwsgi.sockets;
         while(uwsgi_sock) {
                 QSocketNotifier *qsn = new QSocketNotifier(uwsgi_sock->fd, QSocketNotifier::Read, &app);
@@ -92,5 +97,6 @@ extern "C" void qtloop_loop() {
                 uwsgi_sock = uwsgi_sock->next;
         }
 
+        // start the qt event loop
         app.exec();
 }
