@@ -19,18 +19,27 @@ For example you can have a Django self-contained app:
 
 ```py
 # superdjango.py
+
+# import PyQt4 modules
 from PyQt4.Qt import QMainWindow
-from PyQt4 import QtGui, QtCore
+from PyQt4 import QtCore
 from PyQt4 import QtWebKit
 
+# create the main window
 win = QMainWindow()
 win.resize(1280, 1024)
 win.setWindowTitle('Django')
+
+# create the webkit widget
 html = QtWebKit.QWebView()
 html.load(QtCore.QUrl('http://127.0.0.1:8080/'))
 html.show()
+
+# show the main window
+win.setCentralWidget(html)
 win.show()
 
+# load the django app
 # here change with your project name
 from project.wsgi import application
 
@@ -40,10 +49,15 @@ from project.wsgi import application
 [uwsgi]
 ; be sure to run uWSGI from the django project directory
 plugins = python,qtloop
-loop = qt
+; force gui mode
 qtloop-gui = true
+; force uWSGI to use the 'qt' loop engine
+loop = qt
+; load the app
 wsgi-file = superdjango.py
+; bind on port 8080
 http-socket = 127.0.0.1:8080
+; spawn 8 threads
 threads = 8
 ```
 
