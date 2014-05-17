@@ -5,6 +5,11 @@ Qt loop engine for uWSGI
 
 This plugins allows you to integrate Qt apps in uWSGI.
 
+The plugin is 2.x compliant so you can build it in one shot with:
+
+```sh
+uwsgi --build-plugin https://github.com/unbit/uwsgi-qtloop
+```
 
 By default a QtCoreApplication is instantiated, so you can use QtCore objects in your request handlers.
 
