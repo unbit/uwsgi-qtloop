@@ -26,12 +26,14 @@ html.load(QtCore.QUrl('http://127.0.0.1:8080/'))
 html.show()
 win.show()
 
+# here change with your project name
 from project.wsgi import application
 
 ```
 
 ```ini
 [uwsgi]
+; be sure to run uWSGI from the django project directory
 plugins = python,qtloop
 loop = qt
 qtloop-gui = true
