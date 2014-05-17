@@ -1,9 +1,18 @@
 #include <uwsgi.h>
+
+struct qtloop {
+        int gui;
+};
+
+#ifdef __cplusplus
+
 #include <QtCore/QCoreApplication>
 #include <QSocketNotifier>
 #include <QThread>
 #include <QMutex>
 #include <QWaitCondition>
+
+#include <QtGui/QApplication>
 
 class uWSGICoreHandler : public QObject {
         Q_OBJECT
@@ -32,3 +41,5 @@ class uWSGIThread : public QThread {
         public:
                 uWSGICoreHandler *uch;
 };
+
+#endif

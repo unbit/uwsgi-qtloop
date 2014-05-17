@@ -1,6 +1,7 @@
 #include "common.h"
 
 extern struct uwsgi_server uwsgi;
+extern struct qtloop qtloop;
 
 #define UWSGI_QT_EVENT_NULL	0
 #define UWSGI_QT_EVENT_REQUEST	1
@@ -9,6 +10,8 @@ extern struct uwsgi_server uwsgi;
 QWaitCondition QueueReady;
 QWaitCondition QueueFree;
 QMutex mutex;
+
+QCoreApplication *app = NULL;
 
 struct qt_uwsgi_status {
 	int event;
@@ -154,12 +157,22 @@ end:
 	return;
 }
 
+extern "C" int qtloop_init() {
+	// initialize Qt app
+	if (uwsgi.loop && !strcmp(uwsgi.loop, "qt")) {
+		if (qtloop.gui) {
+        		app = new QApplication(uwsgi.argc, uwsgi.argv);
+		}
+		else {
+        		app = new QCoreApplication(uwsgi.argc, uwsgi.argv);
+		}
+	}
+	return 0;
+}
+
 extern "C" void qtloop_loop() {
 	// ensure SIGPIPE is ignored
         signal(SIGPIPE, SIG_IGN);
-
-	// initialize Qt app
-	QCoreApplication app(uwsgi.argc, uwsgi.argv);
 
         // create a QObject (you need one for each thread, async mode is not supported)
 	if (uwsgi.threads > 1) {
@@ -176,17 +189,17 @@ extern "C" void qtloop_loop() {
 
 		// monitor signals
                 if (uwsgi.signal_socket > -1) {
-                        QSocketNotifier *signal_qsn = new QSocketNotifier(uwsgi.signal_socket, QSocketNotifier::Read, &app);
+                        QSocketNotifier *signal_qsn = new QSocketNotifier(uwsgi.signal_socket, QSocketNotifier::Read, app);
                         QObject::connect(signal_qsn, SIGNAL(activated(int)), uts, SLOT(signal_dispatch(int)));
 
-                        QSocketNotifier *my_signal_qsn = new QSocketNotifier(uwsgi.my_signal_socket, QSocketNotifier::Read, &app);
+                        QSocketNotifier *my_signal_qsn = new QSocketNotifier(uwsgi.my_signal_socket, QSocketNotifier::Read, app);
                         QObject::connect(my_signal_qsn, SIGNAL(activated(int)), uts, SLOT(signal_dispatch(int)));
                 }
 
                 // monitor sockets
                 struct uwsgi_socket *uwsgi_sock = uwsgi.sockets;
                 while(uwsgi_sock) {
-                        QSocketNotifier *qsn = new QSocketNotifier(uwsgi_sock->fd, QSocketNotifier::Read, &app);
+                        QSocketNotifier *qsn = new QSocketNotifier(uwsgi_sock->fd, QSocketNotifier::Read, app);
                         QObject::connect(qsn, SIGNAL(activated(int)), uts, SLOT(request_dispatch(int)));
                         uwsgi_sock = uwsgi_sock->next;
                 }
@@ -196,22 +209,22 @@ extern "C" void qtloop_loop() {
 
         	// monitor signals
 		if (uwsgi.signal_socket > -1) {
-			QSocketNotifier *signal_qsn = new QSocketNotifier(uwsgi.signal_socket, QSocketNotifier::Read, &app);
+			QSocketNotifier *signal_qsn = new QSocketNotifier(uwsgi.signal_socket, QSocketNotifier::Read, app);
 			QObject::connect(signal_qsn, SIGNAL(activated(int)), uch, SLOT(handle_signal(int)));
 
-			QSocketNotifier *my_signal_qsn = new QSocketNotifier(uwsgi.my_signal_socket, QSocketNotifier::Read, &app);
+			QSocketNotifier *my_signal_qsn = new QSocketNotifier(uwsgi.my_signal_socket, QSocketNotifier::Read, app);
 			QObject::connect(my_signal_qsn, SIGNAL(activated(int)), uch, SLOT(handle_signal(int)));
 		}
 
         	// monitor sockets
         	struct uwsgi_socket *uwsgi_sock = uwsgi.sockets;
         	while(uwsgi_sock) {
-                	QSocketNotifier *qsn = new QSocketNotifier(uwsgi_sock->fd, QSocketNotifier::Read, &app);
+                	QSocketNotifier *qsn = new QSocketNotifier(uwsgi_sock->fd, QSocketNotifier::Read, app);
                 	QObject::connect(qsn, SIGNAL(activated(int)), uch, SLOT(handle_request(int)));
                 	uwsgi_sock = uwsgi_sock->next;
         	}
 	}
 
         // start the qt event loop
-        app.exec();
+        app->exec();
 }
