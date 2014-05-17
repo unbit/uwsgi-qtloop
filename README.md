@@ -61,3 +61,7 @@ http-socket = 127.0.0.1:8080
 threads = 8
 ```
 
+Status
+======
+
+The main purpose of the plugin is writing native (c++) Qt web applications, the perfect cooperation with the python and the jvm plugins is an unexpected consequence :)
